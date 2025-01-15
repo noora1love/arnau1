@@ -1,26 +1,22 @@
-# Базовый образ Python
-FROM python:3.11-slim
+FROM python:3.11
 
-# Устанавливаем зависимости системы
-RUN apt-get update && apt-get install -y libpq-dev gcc
+# Настроить и активировать виртуальную среду
+ENV VIRTUAL_ENV "/venv"
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH "$VIRTUAL_ENV/bin:$PATH"
 
-# Устанавливаем рабочую директорию внутри контейнера
-WORKDIR /app
+# Команды Python будут выполнены в виртуальной среде
+COPY .. /skatert
+RUN pip install --no-cache-dir -r /skatert/requirements.txt
 
-# Копируем файл зависимостей
-COPY requirements.txt /app/
+RUN pip install gunicorn
+WORKDIR /skatert
 
-# Устанавливаем зависимости Python
-RUN pip install --no-cache-dir -r requirements.txt
+ENV DJANGO_SETTINGS_MODULE=skatert.settings
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH /skatert
 
-# Копируем весь проект в контейнер
-COPY . /app/
-
-# Собираем статические файлы
 RUN python manage.py collectstatic --noinput
-
-# Указываем порт для работы приложения
-EXPOSE 8000
-
-# Команда запуска Django-приложения
 CMD ["gunicorn", "skatert.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+#EXPOSE 8000
